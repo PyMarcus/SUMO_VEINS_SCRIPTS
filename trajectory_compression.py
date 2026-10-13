@@ -6,8 +6,13 @@ processamento.
 import os
 import sys
 import polars
-from dataclasses import dataclass, field
+import random
+from dataclasses import dataclass
 from typing import Tuple, List, Dict
+
+
+random.seed(42)
+
 
 if "SUMO_HOME" in os.environ:
     sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
@@ -48,11 +53,11 @@ class DataframeToCsv:
 
 @dataclass
 class Settings:
-    SUMO_CFG: str = "cologne6to8.sumocfg"
+    SUMO_CFG: str = "cologne6to8.sumocfg" # sumo-gui -c cologne6to8.sumocfg
     OUTPUT_CSV: str = "TRACE-output.csv"
     GRID: int = 100
     SAMPLE_INTERVAL: int = 10
-    SIMULATION_DURATION: int = 60 * 30
+    SIMULATION_DURATION: int = 23400
 
 
 @dataclass
@@ -61,6 +66,18 @@ class RealWorldMapLimits:
     X_MAX: float
     Y_MIN: float
     Y_MAX: float
+
+
+@dataclass
+class Vehicle:
+    vehicle_type = ["car", "motorcycle", "bus"]
+    colors = [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]] # rgb
+
+    def add_vehicle(self) -> None:
+        vehicle = random.choice(self.vehicle_type)
+        color = random.choice(self.colors)
+        print(f"Adicionando veículo: {vehicle} com a cor: {color}")
+        traci.vtype.add(typeID=vehicle)
 
 
 def discretize(real_vehicle_position: Tuple[float, float], real_map: RealWorldMapLimits, grid: int) -> Tuple[int, int]:
@@ -91,7 +108,7 @@ def main():
     vehicles = 0
 
     step = 0
-    while traci.simulation.getMinExpectedNumber() > 0:
+    while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < Settings.SIMULATION_DURATION:
         traci.simulationStep()
         step += 1
 
@@ -124,7 +141,6 @@ def main():
                         DataframeToCsv.append(veic_int, t_start, prev_gx, prev_gy, r_count)
                         vehicle_state[veic_int] = ((gx, gy), current_time, 1)
 
-            # 2. Processa veículos que chegaram ao destino (saíram do mapa)
             for arrived_id in traci.simulation.getArrivedIDList():
                 if arrived_id in id_map:
                     arrived_int = id_map[arrived_id]
