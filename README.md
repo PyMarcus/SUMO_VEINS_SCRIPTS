@@ -1,0 +1,1 @@
+I will now generate a comprehensive `README.md` file covering both **Veins / OMNeT++** and **SUMO** operational workflows, execution modes, file definitions, OSM map extraction, and `RSUExampleScenario.ned` structure.
